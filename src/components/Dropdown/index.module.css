@@ -1,0 +1,88 @@
+.dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 0.75rem;
+}
+
+.dropdownButton {
+  background-color: var(--grey);
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem;
+  padding-left: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  outline: 1px solid transparent;
+  outline-offset: 0px;
+  transition: all 0.1s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.dropdownButton:hover {
+  background-color: var(--grey);
+}
+.dropdownButton:focus, .dropdownButtonOpen {
+  border-color: color-mix(in srgb, var(--primary) 75%, transparent);
+  outline-color: color-mix(in srgb, var(--primary) 75%, transparent);
+  outline-offset: 2px;
+}
+
+.dropdownIcon {
+  position: absolute;
+  left: 0.5rem;
+  z-index: 1;
+}
+.dropdownValue {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 400;
+}
+.chevronIcon {
+  transition: transform 0.2s ease-in-out;
+}
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownOptions {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background-color: var(--grey);
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--light-grey) 50%, transparent);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.dropdownOption {
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.dropdownOption h3 {
+  color: var(--foreground);
+  font-size: 1rem;
+  margin: 0;
+}
+
+@media not all and (hover: none) {
+  .dropdownOption:hover {
+    background-color: color-mix(in srgb, var(--light-grey) 25%, transparent);
+  }
+}
+
+.dropdownOptionActive {
+  background-color: var(--primary-faded);
+}
+.dropdownOptionActive h3 {
+  color: var(--primary);
+}

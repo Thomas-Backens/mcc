@@ -1,0 +1,124 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: var(--background);
+}
+
+.loginCard {
+  background-color: color-mix(in srgb, var(--light-grey) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--light-grey) 50%, transparent);
+  border-radius: 1rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  transition: border-color 0.2s;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--primary-faded);
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.loginCard h1 {
+  margin: 0;
+  color: var(--primary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.inputGroup input {
+  background-color: var(--grey);
+  padding: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  color: var(--foreground);
+  outline: 1px solid transparent;
+  outline-offset: 0px;
+  transition: all 0.1s ease-in-out;
+}
+
+.inputGroup input:focus {
+  border-color: color-mix(in srgb, var(--primary) 75%, transparent);
+  outline-color: color-mix(in srgb, var(--primary) 75%, transparent);
+  outline-offset: 2px;
+}
+
+.inputGroup input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  background-color: var(--error-faded);
+  color: var(--error);
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--error) 50%, transparent);
+  font-size: 0.9rem;
+}
+
+.submitButton {
+  padding: 0.75rem;
+  background-color: transparent;
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 75%, transparent);
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media screen and (max-width: 1000px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .loginCard {
+    padding: 1rem;
+  }
+
+  .header {
+    margin-bottom: 1rem;
+  }
+}

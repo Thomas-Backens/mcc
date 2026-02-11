@@ -1,0 +1,36 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100vw;
+  height: 100vh;
+  padding-bottom: 2rem;
+  pointer-events: none;
+}
+
+.addHymnButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--primary);
+  color: var(--background);
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50px;
+  cursor: pointer;
+  animation: pulseGlow 3s ease-in-out infinite;
+  pointer-events: auto;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary), 0 0 30px var(--primary);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 60px var(--primary);
+  }
+}

@@ -1,0 +1,92 @@
+.topbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--dark-background);
+  width: 100%;
+  border-bottom: 1px solid var(--grey);
+}
+.mainContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1440px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--primary-faded);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+}
+
+.userContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.userContainer h3 {
+  color: var(--light-grey);
+}
+
+.userName {
+  display: block;
+}
+
+.userNameText {
+  display: none;
+}
+
+.logoutText {
+  display: block;
+}
+
+@media screen and (max-width: 1000px) {
+  .userName {
+    display: none;
+  }
+
+  .userNameText {
+    display: block;
+  }
+
+  .logoutText {
+    display: none;
+  }
+}
+.loginButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 75%, transparent);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.loginButton:hover {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.searchbarContainer {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+}
+
+@media screen and (max-width: 1000px) {
+  .searchbarContainer {
+    display: none;
+  }
+}
