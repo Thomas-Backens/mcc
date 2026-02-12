@@ -27,6 +27,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
   const [name, setName] = useState('');
   const [date, setDate] = useState(moment().format('YYYY-MM-DD'));
   const [showWarning, setShowWarning] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user } = useAuth();
@@ -145,6 +146,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
         setSearchQuery('');
         setDate(moment().format('YYYY-MM-DD'));
         setShowWarning(false);
+        setShowDuplicateWarning(false);
         setHadInitialHymn(false);
         if (adminName) {
           setName(adminName);
@@ -196,6 +198,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
     const newDate = e.target.value;
     setDate(newDate);
     setShowWarning(false);
+    setShowDuplicateWarning(false);
   };
 
   const handleSubmit = async () => {
@@ -213,10 +216,28 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
     setIsSubmitting(true);
 
     try {
+      const normalizedDate = moment.utc(date).startOf('day').toISOString();
+
+      // Check if a log already exists for this hymn on this date
+      const { data: existingLogs, error: checkError } = await supabase
+        .from('Logs')
+        .select('id')
+        .eq('song_number', selectedHymn.id)
+        .eq('created_at', normalizedDate);
+
+      if (checkError) throw checkError;
+
+      // If a log already exists, show duplicate warning
+      if (existingLogs && existingLogs.length > 0) {
+        setShowDuplicateWarning(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       const logData = {
         song_number: selectedHymn.id,
         logged_by: name.trim() || 'Anonymous',
-        created_at: moment.utc(date).startOf('day').toISOString(),
+        created_at: normalizedDate,
       };
 
       const { error } = await supabase
@@ -244,11 +265,30 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
     setIsSubmitting(true);
 
     try {
+      const normalizedDate = moment.utc(date).startOf('day').toISOString();
+
+      // Check if a log already exists for this hymn on this date
+      const { data: existingLogs, error: checkError } = await supabase
+        .from('Logs')
+        .select('id')
+        .eq('song_number', selectedHymn.id)
+        .eq('created_at', normalizedDate);
+
+      if (checkError) throw checkError;
+
+      // If a log already exists, show duplicate warning
+      if (existingLogs && existingLogs.length > 0) {
+        setShowDuplicateWarning(true);
+        setShowWarning(false);
+        setIsSubmitting(false);
+        return;
+      }
+
       const logData = {
         id: crypto.randomUUID(),
         song_number: selectedHymn.id,
         logged_by: name.trim() || 'Anonymous',
-        created_at: moment.utc(date).startOf('day').toISOString(),
+        created_at: normalizedDate,
       };
 
       const { error } = await supabase
@@ -366,6 +406,24 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
                     onChange={handleDateChange}
                   />
                 </div>
+
+                {showDuplicateWarning && (
+                  <div className={styles.warning}>
+                    <h3>Duplicate Log</h3>
+                    <p>
+                      This hymn was already logged for {selectedDateMoment.format('dddd, MMMM Do, YYYY')}.
+                      Please select a different date or hymn.
+                    </p>
+                    <div className={styles.warningActions}>
+                      <button
+                        className={styles.warningButton}
+                        onClick={() => setShowDuplicateWarning(false)}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {showWarning && (
                   <div className={styles.warning}>
