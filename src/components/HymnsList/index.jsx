@@ -94,7 +94,7 @@ const HymnsList = ({ search, onSearchChange, refreshKey, selectedHymn, setSelect
               logged_by: log.logged_by || 'Anonymous',
             }))
             // Sort by most recent first (newest to oldest)
-            .sort((a, b) => moment(b.created_at) - moment(a.created_at));
+            .sort((a, b) => moment.utc(b.created_at) - moment.utc(a.created_at));
 
           // Calculate lastSang from logHistory (most recent log is now first)
           const lastSang = logHistory.length > 0 ? logHistory[0]?.created_at || null : null;
@@ -159,13 +159,13 @@ const HymnsList = ({ search, onSearchChange, refreshKey, selectedHymn, setSelect
         if (!a.lastSang && !b.lastSang) return 0;
         if (!a.lastSang) return 1;
         if (!b.lastSang) return -1;
-        return moment(b.lastSang) - moment(a.lastSang);
+        return moment.utc(b.lastSang) - moment.utc(a.lastSang);
       case 'recently-sang-oldest':
         // Oldest to Newest: oldest first, nulls at the end
         if (!a.lastSang && !b.lastSang) return 0;
         if (!a.lastSang) return 1;
         if (!b.lastSang) return -1;
-        return moment(a.lastSang) - moment(b.lastSang);
+        return moment.utc(a.lastSang) - moment.utc(b.lastSang);
       default:
         return 0;
     }

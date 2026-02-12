@@ -12,7 +12,7 @@ const HymnCard = ({ hymn, onClick }) => {
         <div className={styles.hymnTitle}>
           <h2>{hymn.title}</h2>
           <div className={styles.lastSang}>
-            <h4>Last sang: {hymn.lastSang ? moment(hymn.lastSang).format("MMM Do YYYY") : 'Never'}</h4>
+            <h4>Last sang: {hymn.lastSang ? moment.utc(hymn.lastSang).format("MMM Do YYYY") : 'Never'}</h4>
             {hymn.logHistory.length > 0 && <div className={styles.pill}>
               <h4>{hymn.logHistory.length} time{hymn.logHistory.length > 1 ? 's' : ''}</h4>
             </div>}
@@ -20,7 +20,7 @@ const HymnCard = ({ hymn, onClick }) => {
         </div>
       </div>
       <div className={styles.hymnActions}>
-        {hymn.lastSang && moment().diff(moment(hymn.lastSang), 'months') < 1 && (
+        {hymn.lastSang && moment().diff(moment.utc(hymn.lastSang), 'months') < 1 && (
           <div className={styles.errorPill}>
             <Clock
               size={16}

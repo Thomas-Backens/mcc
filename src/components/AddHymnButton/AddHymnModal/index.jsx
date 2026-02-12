@@ -216,7 +216,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
       const logData = {
         song_number: selectedHymn.id,
         logged_by: name.trim() || 'Anonymous',
-        created_at: moment().toISOString(),
+        created_at: moment.utc(date).startOf('day').toISOString(),
       };
 
       const { error } = await supabase
@@ -248,7 +248,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
         id: crypto.randomUUID(),
         song_number: selectedHymn.id,
         logged_by: name.trim() || 'Anonymous',
-        created_at: moment().toISOString(),
+        created_at: moment.utc(date).startOf('day').toISOString(),
       };
 
       const { error } = await supabase

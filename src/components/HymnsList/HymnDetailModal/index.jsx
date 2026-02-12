@@ -76,7 +76,7 @@ const HymnDetailModal = ({ hymn, isOpen, onClose, isSuperAdmin, onLogDeleted }) 
   if (!shouldRender || !hymn) return null;
 
   const timesSang = hymn.logHistory?.length || 0;
-  const lastSang = hymn.lastSang ? moment(hymn.lastSang).format("MMMM Do, YYYY") : 'Never';
+  const lastSang = hymn.lastSang ? moment.utc(hymn.lastSang).format("MMMM Do, YYYY") : 'Never';
 
   const handleDeleteClick = (e, log) => {
     e.stopPropagation();
@@ -155,7 +155,7 @@ const HymnDetailModal = ({ hymn, isOpen, onClose, isSuperAdmin, onLogDeleted }) 
                 hymn.logHistory.map((log) => (
                   <div key={log.id} className={styles.logItem}>
                     <div className={styles.logDate}>
-                      <h2>{moment(log.created_at).format("MMMM Do, YYYY")}</h2>
+                      <h2>{moment.utc(log.created_at).format("MMMM Do, YYYY")}</h2>
                     </div>
                     <div className={styles.logInfo}>
                       <h4>{log.logged_by || 'Anonymous'}</h4>
