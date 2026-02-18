@@ -14,7 +14,7 @@ import moment from 'moment';
 const HymnsList = ({ search, onSearchChange, refreshKey, selectedHymn, setSelectedHymn, onLogDeleted }) => {
   const [hymns, setHymns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('number-low-high');
+  const [sortBy, setSortBy] = useState('recently-sang-newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [adminData, setAdminData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

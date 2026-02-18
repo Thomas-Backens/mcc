@@ -21,6 +21,7 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
   const [loading, setLoading] = useState(true);
   const [selectedHymn, setSelectedHymn] = useState(null);
   const [hadInitialHymn, setHadInitialHymn] = useState(false);
+  const [isCreatingHymn, setIsCreatingHymn] = useState(false);
 
   // Step 2: Logging form
   const [adminName, setAdminName] = useState(null);
@@ -29,26 +30,34 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
   const [showWarning, setShowWarning] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDateConfirmation, setShowDateConfirmation] = useState(false);
+  const [pendingDate, setPendingDate] = useState(null);
+
+  // Step 3: Create hymn form
+  const [hymnTitle, setHymnTitle] = useState('');
+  const [hymnNumber, setHymnNumber] = useState('');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const { user } = useAuth();
 
-  // Fetch admin name
+  // Fetch admin name and super admin status
   useEffect(() => {
-    const fetchAdminName = async () => {
+    const fetchAdminData = async () => {
       if (!user) {
         setAdminName(null);
+        setIsSuperAdmin(false);
         return;
       }
 
       try {
         const { data, error } = await supabase
           .from('Admins')
-          .select('name')
+          .select('name, is_super_admin')
           .eq('id', user.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching admin name:', error);
+          console.error('Error fetching admin data:', error);
           return;
         }
 
@@ -56,13 +65,14 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
           setAdminName(data.name);
           setName(data.name);
         }
+        setIsSuperAdmin(data?.is_super_admin || false);
       } catch (error) {
-        console.error('Error fetching admin name:', error);
+        console.error('Error fetching admin data:', error);
       }
     };
 
     if (isOpen) {
-      fetchAdminName();
+      fetchAdminData();
     }
   }, [user, isOpen]);
 
@@ -147,7 +157,12 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
         setDate(moment().format('YYYY-MM-DD'));
         setShowWarning(false);
         setShowDuplicateWarning(false);
+        setShowDateConfirmation(false);
+        setPendingDate(null);
         setHadInitialHymn(false);
+        setIsCreatingHymn(false);
+        setHymnTitle('');
+        setHymnNumber('');
         if (adminName) {
           setName(adminName);
         } else {
@@ -190,28 +205,52 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
     } else {
       // Otherwise, go back to the hymn selection list
       setSelectedHymn(null);
+      setIsCreatingHymn(false);
       setShowWarning(false);
+      setHymnTitle('');
+      setHymnNumber('');
     }
+  };
+
+  const handleCreateHymnClick = () => {
+    setIsCreatingHymn(true);
   };
 
   const handleDateChange = (e) => {
     const newDate = e.target.value;
-    setDate(newDate);
-    setShowWarning(false);
-    setShowDuplicateWarning(false);
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedHymn) return;
-
-    const selectedDate = moment(date);
+    const selectedDate = moment(newDate);
     const dayOfWeek = selectedDate.day(); // 0 = Sunday, 3 = Wednesday
 
     // Check if date is not Sunday (0) or Wednesday (3)
     if (dayOfWeek !== 0 && dayOfWeek !== 3) {
-      setShowWarning(true);
-      return;
+      // Show confirmation dialog
+      setPendingDate(newDate);
+      setShowDateConfirmation(true);
+    } else {
+      // It's Sunday or Wednesday, set the date directly
+      setDate(newDate);
+      setShowWarning(false);
+      setShowDuplicateWarning(false);
     }
+  };
+
+  const handleConfirmDate = () => {
+    if (pendingDate) {
+      setDate(pendingDate);
+      setPendingDate(null);
+    }
+    setShowDateConfirmation(false);
+    setShowWarning(false);
+    setShowDuplicateWarning(false);
+  };
+
+  const handleCancelDate = () => {
+    setPendingDate(null);
+    setShowDateConfirmation(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedHymn) return;
 
     setIsSubmitting(true);
 
@@ -310,17 +349,217 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
     }
   };
 
+  const handleCreateHymnSubmit = async () => {
+    if (!hymnTitle.trim() || !hymnNumber.trim()) {
+      alert('Please fill in both hymn name and hymn number.');
+      return;
+    }
+
+    const hymnNumberInt = parseInt(hymnNumber, 10);
+    if (isNaN(hymnNumberInt) || hymnNumberInt <= 0) {
+      alert('Please enter a valid hymn number.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const normalizedDate = moment.utc(date).startOf('day').toISOString();
+
+      // Check if hymn number already exists
+      const { data: existingHymn, error: checkHymnError } = await supabase
+        .from('Hymns')
+        .select('id')
+        .eq('id', hymnNumberInt)
+        .single();
+
+      if (checkHymnError && checkHymnError.code !== 'PGRST116') {
+        throw checkHymnError;
+      }
+
+      if (existingHymn) {
+        alert('A hymn with this number already exists. Please choose a different number.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if a log already exists for this hymn number on this date (shouldn't happen, but just in case)
+      const { data: existingLogs, error: checkLogError } = await supabase
+        .from('Logs')
+        .select('id')
+        .eq('song_number', hymnNumberInt)
+        .eq('created_at', normalizedDate);
+
+      if (checkLogError) throw checkLogError;
+
+      // If a log already exists, show duplicate warning
+      if (existingLogs && existingLogs.length > 0) {
+        setShowDuplicateWarning(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create the hymn
+      const { error: hymnError } = await supabase
+        .from('Hymns')
+        .insert([{
+          id: hymnNumberInt,
+          title: hymnTitle.trim(),
+        }]);
+
+      if (hymnError) throw hymnError;
+
+      // Create the log entry
+      const logData = {
+        song_number: hymnNumberInt,
+        logged_by: name.trim() || 'Anonymous',
+        created_at: normalizedDate,
+      };
+
+      const { error: logError } = await supabase
+        .from('Logs')
+        .insert([logData]);
+
+      if (logError) throw logError;
+
+      // Call callback to refresh data
+      if (onLogCreated) {
+        onLogCreated();
+      }
+
+      // Close modal
+      onClose();
+    } catch (error) {
+      console.error('Error creating hymn:', error);
+      alert('Failed to create hymn. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmCreateHymnSubmit = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const normalizedDate = moment.utc(date).startOf('day').toISOString();
+
+      // Check if hymn number already exists
+      const { data: existingHymn, error: checkHymnError } = await supabase
+        .from('Hymns')
+        .select('id')
+        .eq('id', parseInt(hymnNumber, 10))
+        .single();
+
+      if (checkHymnError && checkHymnError.code !== 'PGRST116') {
+        throw checkHymnError;
+      }
+
+      if (existingHymn) {
+        alert('A hymn with this number already exists. Please choose a different number.');
+        setShowWarning(false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if a log already exists for this hymn number on this date
+      const { data: existingLogs, error: checkLogError } = await supabase
+        .from('Logs')
+        .select('id')
+        .eq('song_number', parseInt(hymnNumber, 10))
+        .eq('created_at', normalizedDate);
+
+      if (checkLogError) throw checkLogError;
+
+      // If a log already exists, show duplicate warning
+      if (existingLogs && existingLogs.length > 0) {
+        setShowDuplicateWarning(true);
+        setShowWarning(false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create the hymn
+      const { error: hymnError } = await supabase
+        .from('Hymns')
+        .insert([{
+          id: parseInt(hymnNumber, 10),
+          title: hymnTitle.trim(),
+        }]);
+
+      if (hymnError) throw hymnError;
+
+      // Create the log entry
+      const logData = {
+        id: crypto.randomUUID(),
+        song_number: parseInt(hymnNumber, 10),
+        logged_by: name.trim() || 'Anonymous',
+        created_at: normalizedDate,
+      };
+
+      const { error: logError } = await supabase
+        .from('Logs')
+        .insert([logData]);
+
+      if (logError) throw logError;
+
+      if (onLogCreated) {
+        onLogCreated();
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error creating hymn:', error);
+      alert('Failed to create hymn. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const selectedDateMoment = moment(date);
   const dayOfWeek = selectedDateMoment.day();
   const isSundayOrWednesday = dayOfWeek === 0 || dayOfWeek === 3;
+  const pendingDateMoment = pendingDate ? moment(pendingDate) : null;
 
   return (
     <>
       <div className={`${styles.backdrop} ${isAnimating ? styles.open : ''}`} onClick={onClose} />
       <div ref={modalRef} className={`${styles.modal} ${isAnimating ? styles.open : ''}`}>
+        {showDateConfirmation && pendingDateMoment && (
+          <>
+            <div className={styles.confirmationBackdrop} onClick={handleCancelDate} />
+            <div className={styles.confirmationModal}>
+              <h3>Confirm Date</h3>
+              <p>
+                Are you sure it was sang on {pendingDateMoment.format('dddd')}?
+                ({pendingDateMoment.format('MMMM Do, YYYY')})
+              </p>
+              <div className={styles.confirmationActions}>
+                <button
+                  className={styles.confirmationCancelButton}
+                  onClick={handleCancelDate}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmationConfirmButton}
+                  onClick={handleConfirmDate}
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </>
+        )}
         <div className={styles.modalHeader}>
           <div className={styles.headerContent}>
-            {selectedHymn ? (
+            {isCreatingHymn ? (
+              <>
+                <button className={styles.backButton} onClick={handleBackToSelection}>
+                  <ChevronLeft size={24} />
+                </button>
+                <h1>Create New Hymn</h1>
+              </>
+            ) : selectedHymn ? (
               <>
                 <button className={styles.backButton} onClick={handleBackToSelection}>
                   <ChevronLeft size={24} />
@@ -342,7 +581,106 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
         </div>
 
         <div className={styles.modalContent}>
-          {!selectedHymn ? (
+          {isCreatingHymn ? (
+            // Step 3: Create Hymn Form
+            <div className={styles.loggingStep}>
+              <div className={styles.form}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="hymnTitle">Hymn Name</label>
+                  <div className={styles.inputContainer}>
+                    <input
+                      id="hymnTitle"
+                      type="text"
+                      value={hymnTitle}
+                      onChange={(e) => setHymnTitle(e.target.value)}
+                      placeholder="Enter hymn name"
+                      className={styles.input}
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="hymnNumber">Hymn Number</label>
+                  <div className={styles.inputContainer}>
+                    <input
+                      id="hymnNumber"
+                      type="number"
+                      value={hymnNumber}
+                      onChange={(e) => setHymnNumber(e.target.value)}
+                      placeholder="Enter hymn number"
+                      className={styles.input}
+                      style={{ paddingLeft: '0.75rem' }}
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="name">Name</label>
+                  <div className={styles.inputContainer}>
+                    <User className={styles.inputIcon} size={20} color={"var(--light-grey)"} />
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name (or leave blank for Anonymous)"
+                      className={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="date">Date</label>
+                  <DatePicker
+                    value={date}
+                    onChange={handleDateChange}
+                  />
+                  {!isSundayOrWednesday && date && (
+                    <p className={styles.dateWarning}>
+                      This is not a Sunday or Wednesday, but you may still log it.
+                    </p>
+                  )}
+                </div>
+
+                {showDuplicateWarning && (
+                  <div className={styles.warning}>
+                    <h3>Duplicate Log</h3>
+                    <p>
+                      This hymn was already logged for {selectedDateMoment.format('dddd, MMMM Do, YYYY')}.
+                      Please select a different date or hymn.
+                    </p>
+                    <div className={styles.warningActions}>
+                      <button
+                        className={styles.warningButton}
+                        onClick={() => setShowDuplicateWarning(false)}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.formActions}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={handleBackToSelection}
+                    disabled={isSubmitting}
+                  >
+                    Back
+                  </button>
+                  <button
+                    className={styles.submitButton}
+                    onClick={handleCreateHymnSubmit}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Hymn'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : !selectedHymn ? (
             // Step 1: Hymn Selection
             <div className={styles.selectionStep}>
               <div className={styles.searchContainer}>
@@ -353,6 +691,16 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
                   flex
                 />
               </div>
+              {isSuperAdmin && (
+                <div className={styles.createHymnButtonContainer}>
+                  <button
+                    className={styles.createHymnButton}
+                    onClick={handleCreateHymnClick}
+                  >
+                    Create New Hymn
+                  </button>
+                </div>
+              )}
               <div className={styles.hymnsList}>
                 {loading ? (
                   <div className={styles.loading}>
@@ -405,6 +753,11 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
                     value={date}
                     onChange={handleDateChange}
                   />
+                  {!isSundayOrWednesday && date && (
+                    <p className={styles.dateWarning}>
+                      This is not a Sunday or Wednesday, but you may still log it.
+                    </p>
+                  )}
                 </div>
 
                 {showDuplicateWarning && (
@@ -420,31 +773,6 @@ const AddHymnModal = ({ isOpen, onClose, onLogCreated, initialHymn }) => {
                         onClick={() => setShowDuplicateWarning(false)}
                       >
                         OK
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {showWarning && (
-                  <div className={styles.warning}>
-                    <h3>Warning</h3>
-                    <p>
-                      You are logging for {selectedDateMoment.format('dddd, MMMM Do, YYYY')},
-                      which is not a Sunday or Wednesday. Are you sure this is correct?
-                    </p>
-                    <div className={styles.warningActions}>
-                      <button
-                        className={styles.warningButton}
-                        onClick={() => setShowWarning(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className={`${styles.warningButton} ${styles.confirmButton}`}
-                        onClick={handleConfirmSubmit}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Logging...' : 'Yes, Log It'}
                       </button>
                     </div>
                   </div>
