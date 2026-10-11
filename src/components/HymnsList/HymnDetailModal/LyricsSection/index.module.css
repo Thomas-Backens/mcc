@@ -1,0 +1,417 @@
+.lyricsSection {
+  padding: 1.5rem 1.5rem 0;
+  flex-shrink: 0;
+}
+
+.lyricsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background-color: var(--primary);
+  color: var(--background);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.lyricsButton:hover {
+  background-color: color-mix(in srgb, var(--primary) 90%, transparent);
+}
+
+.addLyricsButton {
+  background-color: var(--primary-faded);
+  color: var(--primary);
+  border: 1px dashed color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+.addLyricsButton:hover {
+  background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.overlayBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--grey);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+  color: var(--foreground);
+}
+
+.iconButton:hover {
+  background-color: color-mix(in srgb, var(--light-grey) 30%, transparent);
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dangerButton {
+  color: var(--error);
+  background-color: transparent;
+  border: 1px solid var(--error);
+}
+
+.dangerButton:hover {
+  background-color: var(--error-faded);
+}
+
+/* Viewer */
+.viewer {
+  position: fixed;
+  inset: 2rem;
+  background-color: var(--background);
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+.viewerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+  flex-shrink: 0;
+}
+
+.viewerHeader h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewerNumber {
+  color: var(--light-grey);
+}
+
+.viewerActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.viewerBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: var(--dark-background);
+}
+
+.lyricsImage {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.lyricsFrame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: white;
+}
+
+.noPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+  margin: auto;
+  color: var(--light-grey);
+  text-align: center;
+}
+
+.noPreview h3 {
+  font-size: 1rem;
+}
+
+.openButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--primary);
+  color: var(--background);
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+/* Picker */
+.pickerModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: 90vw;
+  background-color: var(--background);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1003;
+  animation: slideIn 0.2s ease;
+}
+
+.pickerBackdrop {
+  z-index: 1002;
+}
+
+.pickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pickerHeader h2 {
+  font-size: 1.25rem;
+}
+
+.pickerModal p {
+  color: var(--light-grey);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.pickerOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.pickerOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  background-color: color-mix(in srgb, var(--light-grey) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pickerOption:hover {
+  border-color: var(--primary);
+  background-color: var(--primary-faded);
+  color: var(--primary);
+}
+
+.uploading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+  color: var(--light-grey);
+}
+
+.uploading h3 {
+  font-size: 1rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--grey);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Delete confirmation */
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1004;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirmModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--background);
+  border-radius: 1rem;
+  padding: 2rem;
+  z-index: 1005;
+  min-width: 300px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.2s ease;
+  border: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+}
+
+.confirmModal h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.confirmModal p {
+  font-size: 1rem;
+  color: var(--light-grey);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.confirmButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelButton,
+.deleteConfirmButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.cancelButton {
+  background-color: var(--grey);
+  color: var(--foreground);
+}
+
+.cancelButton:hover {
+  background-color: color-mix(in srgb, var(--light-grey) 30%, transparent);
+}
+
+.deleteConfirmButton {
+  background-color: var(--error);
+  color: white;
+}
+
+.deleteConfirmButton:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.cancelButton:disabled,
+.deleteConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .lyricsSection {
+    padding: 1.25rem 1.25rem 0;
+  }
+
+  .viewer {
+    inset: 0;
+    border-radius: 0;
+    border: none;
+  }
+
+  .viewerHeader {
+    padding: 0.875rem 1rem;
+  }
+
+  .viewerHeader h2 {
+    font-size: 1rem;
+  }
+
+  .iconButton {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .confirmModal {
+    padding: 1.5rem;
+    min-width: 280px;
+  }
+
+  .confirmModal h2 {
+    font-size: 1.25rem;
+  }
+
+  .confirmModal p {
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .confirmButtons {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton,
+  .deleteConfirmButton {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+  }
+}

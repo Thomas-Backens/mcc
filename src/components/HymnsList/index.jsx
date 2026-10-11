@@ -102,6 +102,8 @@ const HymnsList = ({ search, onSearchChange, refreshKey, selectedHymn, setSelect
           return {
             id: hymn.id,
             title: hymn.title,
+            lyricsPath: hymn.lyrics_path || null,
+            lyricsFileType: hymn.lyrics_file_type || null,
             logHistory,
             lastSang,
           };
@@ -289,8 +291,10 @@ const HymnsList = ({ search, onSearchChange, refreshKey, selectedHymn, setSelect
         hymn={selectedHymn}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        isAdmin={!!user}
         isSuperAdmin={adminData?.is_super_admin || false}
         onLogDeleted={onLogDeleted}
+        onLyricsChanged={onLogDeleted}
       />
       {totalPages > 1 && (
         <div className={styles.pagination}>

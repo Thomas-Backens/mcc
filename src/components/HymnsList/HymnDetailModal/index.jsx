@@ -5,8 +5,9 @@ import styles from './index.module.css';
 import { X, Trash2 } from 'lucide-react';
 import moment from 'moment';
 import { supabase } from '@/lib/supabase';
+import LyricsSection from './LyricsSection';
 
-const HymnDetailModal = ({ hymn, isOpen, onClose, isSuperAdmin, onLogDeleted }) => {
+const HymnDetailModal = ({ hymn, isOpen, onClose, isAdmin, isSuperAdmin, onLogDeleted, onLyricsChanged }) => {
   const scrollYRef = useRef(0);
   const modalRef = useRef(null);
   const [shouldRender, setShouldRender] = useState(false);
@@ -148,6 +149,7 @@ const HymnDetailModal = ({ hymn, isOpen, onClose, isSuperAdmin, onLogDeleted }) 
           </button>
         </div>
         <div className={styles.modalContent}>
+          <LyricsSection hymn={hymn} isAdmin={isAdmin} onLyricsChanged={onLyricsChanged} />
           <div className={styles.logsSection}>
             <h2 className={styles.logsTitle}>Log History</h2>
             <div className={styles.logsContainer}>
