@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './index.module.css';
-import { FileText, Plus, X, Camera, Upload, RefreshCw, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Plus, X, ScanLine, Upload, RefreshCw, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import DocumentScanner from './DocumentScanner';
 
 const BUCKET = 'hymn-lyrics';
 const ACCEPTED_FILES = 'image/*,application/pdf,.pdf,.doc,.docx,.txt,.rtf,.odt';
@@ -49,8 +51,8 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
 
   // Keep local copy so changes show immediately without reopening the modal
   useEffect(() => {
@@ -58,6 +60,7 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
     setViewerOpen(false);
     setPickerOpen(false);
     setDeleteConfirmOpen(false);
+    setScannerOpen(false);
   }, [hymn?.id, hymn?.lyricsPath, hymn?.lyricsFileType]);
 
   if (!hymn) return null;
@@ -81,12 +84,19 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
     }
   };
 
-  const handleFileSelected = async (e) => {
+  const handleFileSelected = (e) => {
     const selected = e.target.files?.[0];
     // Reset so selecting the same file again still fires onChange
     e.target.value = '';
-    if (!selected) return;
+    if (selected) uploadFile(selected);
+  };
 
+  const handleScanComplete = (file) => {
+    setScannerOpen(false);
+    uploadFile(file);
+  };
+
+  const uploadFile = async (selected) => {
     setIsUploading(true);
     try {
       const file = await compressImage(selected);
@@ -173,7 +183,6 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
         {hasLyrics ? 'Lyrics' : 'Add Lyrics'}
       </button>
 
-      {/* Hidden inputs: one for files, one that opens the camera on mobile */}
       <input
         ref={fileInputRef}
         type="file"
@@ -181,152 +190,158 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
         className={styles.hiddenInput}
         onChange={handleFileSelected}
       />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className={styles.hiddenInput}
-        onChange={handleFileSelected}
-      />
 
-      {pickerOpen && (
+      {/* Overlays render at the body so the modal's transform doesn't trap position: fixed */}
+      {createPortal(
         <>
-          <div
-            className={`${styles.overlayBackdrop} ${styles.pickerBackdrop}`}
-            onClick={() => !isUploading && setPickerOpen(false)}
-          />
-          <div className={styles.pickerModal}>
-            <div className={styles.pickerHeader}>
-              <h2>{hasLyrics ? 'Replace Lyrics' : 'Add Lyrics'}</h2>
-              <button
-                className={styles.iconButton}
-                onClick={() => setPickerOpen(false)}
-                disabled={isUploading}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p>Upload a document, PDF, or photo of the lyrics for #{hymn.id} {hymn.title}.</p>
-            {isUploading ? (
-              <div className={styles.uploading}>
-                <div className={styles.spinner}></div>
-                <h3>Uploading...</h3>
-              </div>
-            ) : (
-              <div className={styles.pickerOptions}>
-                <button className={styles.pickerOption} onClick={() => cameraInputRef.current?.click()}>
-                  <Camera size={22} />
-                  Take Photo
-                </button>
-                <button className={styles.pickerOption} onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={22} />
-                  Choose File
-                </button>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          {scannerOpen && (
+            <DocumentScanner
+              fileName={`${hymn.id} - ${hymn.title}`}
+              onComplete={handleScanComplete}
+              onCancel={() => setScannerOpen(false)}
+            />
+          )}
 
-      {viewerOpen && hasLyrics && (
-        <>
-          <div className={styles.overlayBackdrop} onClick={() => setViewerOpen(false)} />
-          <div className={styles.viewer}>
-            <div className={styles.viewerHeader}>
-              <h2>
-                <span className={styles.viewerNumber}>#{hymn.id}</span> {hymn.title}
-              </h2>
-              <div className={styles.viewerActions}>
-                <a
-                  className={styles.iconButton}
-                  href={publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Open in new tab"
-                  title="Open in new tab"
-                >
-                  <ExternalLink size={18} />
-                </a>
-                {isAdmin && (
-                  <>
+          {pickerOpen && (
+            <>
+              <div
+                className={`${styles.overlayBackdrop} ${styles.pickerBackdrop}`}
+                onClick={() => !isUploading && setPickerOpen(false)}
+              />
+              <div className={styles.pickerModal}>
+                <div className={styles.pickerHeader}>
+                  <h2>{hasLyrics ? 'Replace Lyrics' : 'Add Lyrics'}</h2>
+                  <button
+                    className={styles.iconButton}
+                    onClick={() => setPickerOpen(false)}
+                    disabled={isUploading}
+                    aria-label="Close"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <p>Scan the printed lyrics with your camera, or upload a document or PDF for #{hymn.id} {hymn.title}.</p>
+                {isUploading ? (
+                  <div className={styles.uploading}>
+                    <div className={styles.spinner}></div>
+                    <h3>Uploading...</h3>
+                  </div>
+                ) : (
+                  <div className={styles.pickerOptions}>
+                    <button className={styles.pickerOption} onClick={() => setScannerOpen(true)}>
+                      <ScanLine size={22} />
+                      Scan Document
+                    </button>
+                    <button className={styles.pickerOption} onClick={() => fileInputRef.current?.click()}>
+                      <Upload size={22} />
+                      Choose File
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {viewerOpen && hasLyrics && (
+            <>
+              <div className={styles.overlayBackdrop} onClick={() => setViewerOpen(false)} />
+              <div className={styles.viewer}>
+                <div className={styles.viewerHeader}>
+                  <h2>
+                    <span className={styles.viewerNumber}>#{hymn.id}</span> {hymn.title}
+                  </h2>
+                  <div className={styles.viewerActions}>
+                    <a
+                      className={styles.iconButton}
+                      href={publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Open in new tab"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink size={18} />
+                    </a>
+                    {isAdmin && (
+                      <>
+                        <button
+                          className={styles.iconButton}
+                          onClick={() => setPickerOpen(true)}
+                          aria-label="Replace lyrics"
+                          title="Replace lyrics"
+                        >
+                          <RefreshCw size={18} />
+                        </button>
+                        <button
+                          className={`${styles.iconButton} ${styles.dangerButton}`}
+                          onClick={() => setDeleteConfirmOpen(true)}
+                          aria-label="Delete lyrics"
+                          title="Delete lyrics"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                     <button
                       className={styles.iconButton}
-                      onClick={() => setPickerOpen(true)}
-                      aria-label="Replace lyrics"
-                      title="Replace lyrics"
+                      onClick={() => setViewerOpen(false)}
+                      aria-label="Close"
                     >
-                      <RefreshCw size={18} />
+                      <X size={20} />
                     </button>
-                    <button
-                      className={`${styles.iconButton} ${styles.dangerButton}`}
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      aria-label="Delete lyrics"
-                      title="Delete lyrics"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </>
-                )}
-                <button
-                  className={styles.iconButton}
-                  onClick={() => setViewerOpen(false)}
-                  aria-label="Close"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            <div className={styles.viewerBody}>
-              {isImage ? (
-                <img className={styles.lyricsImage} src={publicUrl} alt={`Lyrics for ${hymn.title}`} />
-              ) : isPdf ? (
-                <iframe className={styles.lyricsFrame} src={publicUrl} title={`Lyrics for ${hymn.title}`} />
-              ) : (
-                <div className={styles.noPreview}>
-                  <FileText size={48} />
-                  <h3>This document can't be previewed here.</h3>
-                  <a
-                    className={styles.openButton}
-                    href={publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={18} />
-                    Open Document
-                  </a>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+                <div className={styles.viewerBody}>
+                  {isImage ? (
+                    <img className={styles.lyricsImage} src={publicUrl} alt={`Lyrics for ${hymn.title}`} />
+                  ) : isPdf ? (
+                    <iframe className={styles.lyricsFrame} src={publicUrl} title={`Lyrics for ${hymn.title}`} />
+                  ) : (
+                    <div className={styles.noPreview}>
+                      <FileText size={48} />
+                      <h3>This document can't be previewed here.</h3>
+                      <a
+                        className={styles.openButton}
+                        href={publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink size={18} />
+                        Open Document
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
-      {deleteConfirmOpen && (
-        <>
-          <div className={styles.confirmBackdrop} onClick={() => !isDeleting && setDeleteConfirmOpen(false)} />
-          <div className={styles.confirmModal}>
-            <h2>Delete Lyrics?</h2>
-            <p>Are you sure you want to delete the lyrics for this hymn? This action cannot be undone.</p>
-            <div className={styles.confirmButtons}>
-              <button
-                className={styles.cancelButton}
-                onClick={() => setDeleteConfirmOpen(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.deleteConfirmButton}
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </>
+          {deleteConfirmOpen && (
+            <>
+              <div className={styles.confirmBackdrop} onClick={() => !isDeleting && setDeleteConfirmOpen(false)} />
+              <div className={styles.confirmModal}>
+                <h2>Delete Lyrics?</h2>
+                <p>Are you sure you want to delete the lyrics for this hymn? This action cannot be undone.</p>
+                <div className={styles.confirmButtons}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={styles.deleteConfirmButton}
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </>,
+        document.body
       )}
     </div>
   );
