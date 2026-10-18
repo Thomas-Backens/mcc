@@ -1,0 +1,184 @@
+.cropEditor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: var(--dark-background);
+}
+
+.image {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The huge shadow dims everything outside the crop */
+.cropBox {
+  position: absolute;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+}
+
+.moveArea {
+  position: absolute;
+  inset: 0;
+  cursor: move;
+}
+
+/* Rule-of-thirds lines to help line things up */
+.gridV,
+.gridH {
+  position: absolute;
+  pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.35);
+  border-style: solid;
+}
+
+.gridV {
+  top: 0;
+  bottom: 0;
+  left: 33.33%;
+  width: 33.33%;
+  border-width: 0 1px;
+}
+
+.gridH {
+  left: 0;
+  right: 0;
+  top: 33.33%;
+  height: 33.33%;
+  border-width: 1px 0;
+}
+
+/* Handles have a large invisible touch area with a small visible marker */
+.handle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  z-index: 1;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  background-color: var(--primary);
+  border-radius: 3px;
+}
+
+.n,
+.s {
+  left: 50%;
+  margin-left: -22px;
+  cursor: ns-resize;
+}
+
+.e,
+.w {
+  top: 50%;
+  margin-top: -22px;
+  cursor: ew-resize;
+}
+
+.n {
+  top: -22px;
+}
+
+.s {
+  bottom: -22px;
+}
+
+.e {
+  right: -22px;
+}
+
+.w {
+  left: -22px;
+}
+
+.n::after,
+.s::after {
+  left: 8px;
+  right: 8px;
+  top: 19px;
+  height: 6px;
+}
+
+.e::after,
+.w::after {
+  top: 8px;
+  bottom: 8px;
+  left: 19px;
+  width: 6px;
+}
+
+.nw,
+.ne,
+.sw,
+.se {
+  width: 48px;
+  height: 48px;
+}
+
+.nw {
+  top: -24px;
+  left: -24px;
+  cursor: nwse-resize;
+}
+
+.ne {
+  top: -24px;
+  right: -24px;
+  cursor: nesw-resize;
+}
+
+.sw {
+  bottom: -24px;
+  left: -24px;
+  cursor: nesw-resize;
+}
+
+.se {
+  bottom: -24px;
+  right: -24px;
+  cursor: nwse-resize;
+}
+
+.nw::after,
+.ne::after,
+.sw::after,
+.se::after {
+  width: 18px;
+  height: 18px;
+  background-color: transparent;
+  border: 4px solid var(--primary);
+  border-radius: 0;
+}
+
+.nw::after {
+  top: 22px;
+  left: 22px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.ne::after {
+  top: 22px;
+  right: 22px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.sw::after {
+  bottom: 22px;
+  left: 22px;
+  border-right: none;
+  border-top: none;
+}
+
+.se::after {
+  bottom: 22px;
+  right: 22px;
+  border-left: none;
+  border-top: none;
+}

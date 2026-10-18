@@ -2,7 +2,7 @@
 // white-background page and bundle pages into a PDF (no external libraries).
 
 export const PAGE_ASPECT = 8.5 / 11; // US Letter, width / height
-const MAX_OUTPUT_HEIGHT = 2200; // ~200 DPI for a letter page
+export const SPREAD_ASPECT = 17 / 11; // Open book: two pages side by side
 const BLOCK_SIZE = 16; // Size of the tiles used to estimate paper brightness
 
 // Estimates the brightness of the bare paper across the page. Text is darker
@@ -82,11 +82,13 @@ const estimateBackground = (gray, width, height) => {
   return { values: smooth, bw, bh };
 };
 
-// If the page didn't fill the guide, the table/background around it comes out
-// dark. Flood-fill any non-white area touching the image edge and paint it white.
-// Text has a margin from the paper's edge, so it isn't connected to the border.
+// A crop that catches the table, the book's spine, or the paper's edge comes
+// out as dark bands along the image border. For each edge that is mostly dark,
+// flood-fill the dark area connected to it and paint it white. Lyrics touching
+// a tight crop only darken a small part of an edge, so they're left alone.
 const clearBorderBackground = (gray, width, height) => {
   const THRESHOLD = 200;
+  const DARK_EDGE_FRACTION = 0.3;
   const visited = new Uint8Array(width * height);
   const stack = new Int32Array(width * height);
   let top = 0;
@@ -98,13 +100,16 @@ const clearBorderBackground = (gray, width, height) => {
     }
   };
 
-  for (let x = 0; x < width; x++) {
-    seed(x);
-    seed((height - 1) * width + x);
-  }
-  for (let y = 0; y < height; y++) {
-    seed(y * width);
-    seed(y * width + width - 1);
+  const edges = [
+    Array.from({ length: width }, (_, x) => x), // Top
+    Array.from({ length: width }, (_, x) => (height - 1) * width + x), // Bottom
+    Array.from({ length: height }, (_, y) => y * width), // Left
+    Array.from({ length: height }, (_, y) => y * width + width - 1), // Right
+  ];
+
+  for (const edge of edges) {
+    const dark = edge.reduce((count, i) => count + (gray[i] < THRESHOLD ? 1 : 0), 0);
+    if (dark / edge.length >= DARK_EDGE_FRACTION) edge.forEach(seed);
   }
 
   while (top > 0) {
@@ -118,19 +123,61 @@ const clearBorderBackground = (gray, width, height) => {
   }
 };
 
-// Crops the given region of a source (video, image, or canvas) and returns a
-// canvas with shadows removed, the paper pure white, and the text darkened.
-export const enhanceDocument = (source, sx, sy, sw, sh) => {
-  const height = Math.round(Math.min(MAX_OUTPUT_HEIGHT, sh));
-  const width = Math.round(height * (sw / sh));
+// Removes faint marks left after cleanup (page-stack edges, binding shadows,
+// smudges). Printed text and notes always have a near-black core, so any
+// connected mark whose darkest pixel stays light grey is painted white.
+const removeFaintMarks = (gray, width, height) => {
+  const INK = 245; // Anything darker than this is part of a mark
+  const MIN_CORE = 140; // A mark must reach at least this dark to be kept
+  const visited = new Uint8Array(width * height);
+  const stack = new Int32Array(width * height);
+  const component = [];
 
+  for (let start = 0; start < gray.length; start++) {
+    if (visited[start] || gray[start] >= INK) continue;
+
+    let top = 0;
+    let darkest = 255;
+    component.length = 0;
+    visited[start] = 1;
+    stack[top++] = start;
+
+    while (top > 0) {
+      const i = stack[--top];
+      component.push(i);
+      if (gray[i] < darkest) darkest = gray[i];
+      const x = i % width;
+      let n;
+      if (x > 0 && !visited[(n = i - 1)] && gray[n] < INK) (visited[n] = 1), (stack[top++] = n);
+      if (x < width - 1 && !visited[(n = i + 1)] && gray[n] < INK) (visited[n] = 1), (stack[top++] = n);
+      if (i >= width && !visited[(n = i - width)] && gray[n] < INK) (visited[n] = 1), (stack[top++] = n);
+      if (i < (height - 1) * width && !visited[(n = i + width)] && gray[n] < INK) (visited[n] = 1), (stack[top++] = n);
+    }
+
+    if (darkest > MIN_CORE) {
+      for (const i of component) gray[i] = 255;
+    }
+  }
+};
+
+// Draws a region of a source (video, image, bitmap, or canvas) onto a new
+// canvas, scaled down so neither side exceeds the given limits.
+export const cropToCanvas = (source, sx, sy, sw, sh, maxWidth = Infinity, maxHeight = Infinity) => {
+  const scale = Math.min(1, maxWidth / sw, maxHeight / sh);
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  canvas.width = Math.max(1, Math.round(sw * scale));
+  canvas.height = Math.max(1, Math.round(sh * scale));
+  const ctx = canvas.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, width, height);
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  return canvas;
+};
 
+// Cleans up a canvas in place: removes shadows, makes the paper pure white,
+// darkens the text, and whitens dark bands along the edges.
+export const enhanceCanvas = (canvas) => {
+  const { width, height } = canvas;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
   const pixelCount = width * height;
@@ -168,13 +215,12 @@ export const enhanceDocument = (source, sx, sy, sw, sh) => {
       const i = y * width + x;
       let t = (gray[i] / paper - BLACK_POINT) / range;
       t = t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(t, 1.5); // Gamma keeps text crisp and dark
-      const v = t * 255;
-
-      gray[i] = v;
+      gray[i] = t * 255;
     }
   }
 
   clearBorderBackground(gray, width, height);
+  removeFaintMarks(gray, width, height);
 
   for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
     data[p] = gray[i];
@@ -187,14 +233,62 @@ export const enhanceDocument = (source, sx, sy, sw, sh) => {
   return canvas;
 };
 
-const canvasToJpegBytes = async (canvas, quality = 0.8) => {
+const MAX_OUTPUT_WIDTH = 1700; // ~200 DPI across a letter-width page
+
+// Stacks cropped parts of one or more photos vertically into a single tall
+// image (for hymns that continue onto the next page or column).
+// parts: [{ source, rect: { x, y, width, height } }] with rect normalized 0-1.
+export const composeParts = (parts, { enhance = true } = {}) => {
+  const regions = parts.map(({ source, rect }) => {
+    const sw = source.width;
+    const sh = source.height;
+    return {
+      source,
+      sx: rect.x * sw,
+      sy: rect.y * sh,
+      sw: rect.width * sw,
+      sh: rect.height * sh,
+    };
+  });
+
+  const width = Math.round(Math.min(MAX_OUTPUT_WIDTH, Math.max(...regions.map((r) => r.sw))));
+  const gap = parts.length > 1 ? Math.round(width * 0.03) : 0;
+
+  const canvases = regions.map((r) => {
+    // Every part is drawn at the same width so they line up when stacked
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = Math.max(1, Math.round(r.sh * (width / r.sw)));
+    const cctx = canvas.getContext('2d');
+    cctx.imageSmoothingQuality = 'high';
+    cctx.drawImage(r.source, r.sx, r.sy, r.sw, r.sh, 0, 0, canvas.width, canvas.height);
+    return enhance ? enhanceCanvas(canvas) : canvas;
+  });
+
+  const output = document.createElement('canvas');
+  output.width = width;
+  output.height = canvases.reduce((sum, c) => sum + c.height, 0) + gap * (canvases.length - 1);
+  const ctx = output.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, output.width, output.height);
+
+  let y = 0;
+  for (const canvas of canvases) {
+    ctx.drawImage(canvas, 0, y);
+    y += canvas.height + gap;
+  }
+
+  return output;
+};
+
+const canvasToJpegBytes = async (canvas, quality = 0.85) => {
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
   if (!blob) throw new Error('Could not encode page image');
   return new Uint8Array(await blob.arrayBuffer());
 };
 
 // Builds a PDF with one page per canvas. Each page is US Letter width and
-// its height follows the image's aspect ratio, so nothing is stretched.
+// its height follows the image's aspect ratio, so tall stacked hymns stay one page.
 export const buildPdf = async (canvases) => {
   const encoder = new TextEncoder();
   const chunks = [];

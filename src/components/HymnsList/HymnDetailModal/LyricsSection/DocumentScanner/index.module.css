@@ -120,7 +120,7 @@
 
 .hint {
   position: absolute;
-  top: 0.75rem;
+  bottom: 0.75rem;
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -154,24 +154,6 @@
   font-size: 0.875rem;
   line-height: 1.5;
   max-width: 320px;
-}
-
-.review {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background-color: var(--dark-background);
-}
-
-.review img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 0.25rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
 .processing {
@@ -234,35 +216,6 @@
   cursor: not-allowed;
 }
 
-.thumbnail {
-  width: 3rem;
-  height: 3.9rem;
-  padding: 0;
-  border: 2px solid #fff;
-  border-radius: 0.375rem;
-  overflow: hidden;
-  cursor: pointer;
-  background: #fff;
-}
-
-.thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.doneButton {
-  padding: 0.625rem 1.25rem;
-  background-color: var(--primary);
-  color: var(--background);
-  border: none;
-  border-radius: 999px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .primaryButton,
 .secondaryButton {
   flex: 1;
@@ -279,9 +232,11 @@
   white-space: nowrap;
 }
 
-.message .primaryButton {
-  flex: none;
-  padding: 0.875rem 1.5rem;
+.messageButtons {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 340px;
 }
 
 .primaryButton {
@@ -296,9 +251,207 @@
 
 .primaryButton:disabled,
 .secondaryButton:disabled,
-.doneButton:disabled {
+.textButton:disabled,
+.roundButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Dashed line down the middle of the 2-page guide for the book's spine */
+.spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 2px dashed rgba(255, 255, 255, 0.6);
+}
+
+.modeToggle,
+.modeToggleInline {
+  display: flex;
+  padding: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 999px;
+}
+
+.modeToggle {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.modeToggle button,
+.modeToggleInline button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.modeToggle .modeActive,
+.modeToggleInline .modeActive {
+  background-color: var(--primary);
+  color: var(--background);
+}
+
+.modeToggleInline {
+  background-color: var(--grey);
+  align-self: center;
+}
+
+/* Choose a photo for the next part */
+.choose {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: var(--dark-background);
+}
+
+.chooseHint {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--light-grey);
+}
+
+.shotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.shotOption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--grey);
+  border: 2px solid transparent;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.shotOption:hover {
+  border-color: var(--primary);
+}
+
+.shotOption img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  background-color: #000;
+  border-radius: 0.375rem;
+}
+
+.chooseActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Review the stacked result */
+.review {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--dark-background);
+}
+
+.reviewToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+  flex-shrink: 0;
+}
+
+.partChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.partChip {
+  display: flex;
+  background-color: var(--grey);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.partChip button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.partChip button:last-child {
+  color: var(--light-grey);
+  border-left: 1px solid color-mix(in srgb, var(--light-grey) 30%, transparent);
+}
+
+.partChip button:hover {
+  background-color: color-mix(in srgb, var(--light-grey) 25%, transparent);
+}
+
+.reviewScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.reviewScroll img {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border-radius: 0.25rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+.roundButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--grey);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.textButton {
+  padding: 0.625rem 1.25rem;
+  background-color: var(--grey);
+  color: var(--foreground);
+  border: none;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 @keyframes fadeIn {
