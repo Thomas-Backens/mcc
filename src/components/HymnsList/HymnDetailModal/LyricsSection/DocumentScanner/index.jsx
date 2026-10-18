@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './index.module.css';
-import { X, Plus, Check, Camera, Images, Pencil, ArrowLeft, Maximize } from 'lucide-react';
+import { X, Plus, Check, Camera, Images, Pencil, ArrowLeft, Maximize, RotateCcw } from 'lucide-react';
 import { PAGE_ASPECT, SPREAD_ASPECT, cropToCanvas, composeParts, buildPdf } from '@/lib/scanDocument';
 import CropEditor from './CropEditor';
 
@@ -42,9 +42,10 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
   const [cameraState, setCameraState] = useState('starting'); // starting | ready | unavailable
   const [guideMode, setGuideMode] = useState('page'); // page | spread
   const [step, setStep] = useState('camera'); // camera | crop | choose | review
-  const [shots, setShots] = useState([]); // [{ canvas, url }]
+  const [shots, setShots] = useState([]); // [{ canvas, url }], null once no longer used
   const [parts, setParts] = useState([]); // [{ shotIndex, rect }]
   const [editing, setEditing] = useState(null); // { shotIndex, rect, partIndex }
+  const [targetPart, setTargetPart] = useState(null); // Part the next photo replaces (null = new part)
   const [enhance, setEnhance] = useState(true);
   const [result, setResult] = useState(null); // { canvas, url }
   const [isProcessing, setIsProcessing] = useState(false);
@@ -142,8 +143,20 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
     shotUrlsRef.current.push(url);
     const shotIndex = shots.length;
     setShots((prev) => [...prev, { canvas, url }]);
-    setEditing({ shotIndex, rect: FULL_RECT, partIndex: null });
+    setEditing({ shotIndex, rect: FULL_RECT, partIndex: targetPart });
     setStep('crop');
+  };
+
+  // Free photos that no part uses anymore (e.g. after a retake) so memory stays low on phones
+  const pruneShots = (nextParts) => {
+    const used = new Set(nextParts.map((part) => part.shotIndex));
+    setShots((prev) =>
+      prev.map((shot, i) => {
+        if (!shot || used.has(i)) return shot;
+        if (shot.url.startsWith('blob:')) URL.revokeObjectURL(shot.url);
+        return null;
+      })
+    );
   };
 
   const handleCapture = () => {
@@ -197,18 +210,38 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
 
   const handleUseSelection = () => {
     const part = { shotIndex: editing.shotIndex, rect: editing.rect };
-    setParts((prev) =>
-      editing.partIndex === null ? [...prev, part] : prev.map((p, i) => (i === editing.partIndex ? part : p))
-    );
+    const nextParts =
+      editing.partIndex === null ? [...parts, part] : parts.map((p, i) => (i === editing.partIndex ? part : p));
+    setParts(nextParts);
+    pruneShots(nextParts);
     setEditing(null);
+    setTargetPart(null);
     setStep('review');
   };
 
   const handleCropBack = () => {
     const isNewPart = editing?.partIndex === null;
     setEditing(null);
+    setTargetPart(null);
     // A new part goes back to where it came from; editing an existing part returns to review
     setStep(!isNewPart ? 'review' : parts.length > 0 ? 'choose' : 'camera');
+  };
+
+  // Take a new photo for the part being cropped (new or existing) without touching the other parts
+  const handleRetake = () => {
+    setTargetPart(editing?.partIndex ?? null);
+    setEditing(null);
+    setStep('camera');
+  };
+
+  const handleCameraBack = () => {
+    setTargetPart(null);
+    setStep('review');
+  };
+
+  const handleNewPhotoForNewPart = () => {
+    setTargetPart(null);
+    setStep('camera');
   };
 
   const handleEditPart = (partIndex) => {
@@ -219,6 +252,7 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
   const handleRemovePart = (partIndex) => {
     const remaining = parts.filter((_, i) => i !== partIndex);
     setParts(remaining);
+    pruneShots(remaining);
     if (remaining.length === 0) {
       setResult(null);
       setStep('camera');
@@ -226,6 +260,7 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
   };
 
   const handleChooseShot = (shotIndex) => {
+    setTargetPart(null);
     setEditing({ shotIndex, rect: FULL_RECT, partIndex: null });
     setStep('crop');
   };
@@ -250,7 +285,12 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
 
   const editingShot = editing ? shots[editing.shotIndex] : null;
   const titles = {
-    camera: parts.length > 0 ? `Part ${parts.length + 1}` : 'Scan Lyrics',
+    camera:
+      targetPart !== null
+        ? `Retake Part ${targetPart + 1}`
+        : parts.length > 0
+          ? `Part ${parts.length + 1}`
+          : 'Scan Lyrics',
     crop: 'Crop to the Hymn',
     choose: 'Add Part',
     review: 'Review',
@@ -361,6 +401,16 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
           />
         )}
 
+        {step === 'crop' && editingShot && (
+          <button
+            className={styles.resetCrop}
+            onClick={() => setEditing((prev) => ({ ...prev, rect: FULL_RECT }))}
+          >
+            <Maximize size={14} />
+            Reset crop
+          </button>
+        )}
+
         {step === 'choose' && (
           <div className={styles.choose}>
             <p className={styles.chooseHint}>
@@ -368,15 +418,19 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
               added below what you have so far.
             </p>
             <div className={styles.shotGrid}>
-              {shots.map((shot, i) => (
-                <button key={shot.url} className={styles.shotOption} onClick={() => handleChooseShot(i)}>
-                  <img src={shot.url} alt={`Photo ${i + 1}`} />
-                  <span>Photo {i + 1}</span>
-                </button>
-              ))}
+              {shots.map((shot, i) => {
+                if (!shot) return null;
+                const usedBy = parts.map((part, p) => (part.shotIndex === i ? p + 1 : null)).filter(Boolean);
+                return (
+                  <button key={shot.url} className={styles.shotOption} onClick={() => handleChooseShot(i)}>
+                    <img src={shot.url} alt={`Photo used in part ${usedBy.join(', ')}`} />
+                    <span>Photo from Part {usedBy.join(', ')}</span>
+                  </button>
+                );
+              })}
             </div>
             <div className={styles.chooseActions}>
-              <button className={styles.primaryButton} onClick={() => setStep('camera')}>
+              <button className={styles.primaryButton} onClick={handleNewPhotoForNewPart}>
                 <Camera size={18} />
                 New Photo
               </button>
@@ -404,7 +458,7 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
                   <div key={i} className={styles.partChip}>
                     <button onClick={() => handleEditPart(i)} aria-label={`Edit crop for part ${i + 1}`}>
                       <Pencil size={14} />
-                      Part {i + 1}
+                      Edit Part {i + 1}
                     </button>
                     <button onClick={() => handleRemovePart(i)} aria-label={`Remove part ${i + 1}`}>
                       <X size={14} />
@@ -447,8 +501,8 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
             />
             <div className={styles.controlSide}>
               {parts.length > 0 && (
-                <button className={styles.textButton} onClick={() => setStep('review')} disabled={isProcessing}>
-                  Back
+                <button className={styles.textButton} onClick={handleCameraBack} disabled={isProcessing}>
+                  {targetPart !== null ? 'Cancel' : 'Back'}
                 </button>
               )}
             </div>
@@ -459,15 +513,11 @@ const DocumentScanner = ({ fileName, onComplete, onCancel }) => {
           <>
             <button className={styles.secondaryButton} onClick={handleCropBack} disabled={isProcessing}>
               <ArrowLeft size={18} />
-              {editing?.partIndex === null ? 'Retake' : 'Back'}
+              Back
             </button>
-            <button
-              className={styles.secondaryButton}
-              onClick={() => setEditing((prev) => ({ ...prev, rect: FULL_RECT }))}
-              disabled={isProcessing}
-            >
-              <Maximize size={18} />
-              Full
+            <button className={styles.secondaryButton} onClick={handleRetake} disabled={isProcessing}>
+              <RotateCcw size={18} />
+              Retake
             </button>
             <button className={styles.primaryButton} onClick={handleUseSelection} disabled={isProcessing}>
               <Check size={18} />

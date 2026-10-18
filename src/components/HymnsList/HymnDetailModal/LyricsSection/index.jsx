@@ -6,6 +6,7 @@ import styles from './index.module.css';
 import { FileText, Plus, X, ScanLine, Upload, RefreshCw, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import DocumentScanner from './DocumentScanner';
+import LyricsViewer from './LyricsViewer';
 
 const BUCKET = 'hymn-lyrics';
 const ACCEPTED_FILES = 'image/*,application/pdf,.pdf,.doc,.docx,.txt,.rtf,.odt';
@@ -291,10 +292,19 @@ const LyricsSection = ({ hymn, isAdmin, onLyricsChanged }) => {
                   </div>
                 </div>
                 <div className={styles.viewerBody}>
-                  {isImage ? (
-                    <img className={styles.lyricsImage} src={publicUrl} alt={`Lyrics for ${hymn.title}`} />
-                  ) : isPdf ? (
-                    <iframe className={styles.lyricsFrame} src={publicUrl} title={`Lyrics for ${hymn.title}`} />
+                  {isImage || isPdf ? (
+                    <LyricsViewer
+                      url={publicUrl}
+                      isPdf={isPdf}
+                      title={hymn.title}
+                      fallback={
+                        isPdf ? (
+                          <iframe className={styles.lyricsFrame} src={publicUrl} title={`Lyrics for ${hymn.title}`} />
+                        ) : (
+                          <img className={styles.lyricsImage} src={publicUrl} alt={`Lyrics for ${hymn.title}`} />
+                        )
+                      }
+                    />
                   ) : (
                     <div className={styles.noPreview}>
                       <FileText size={48} />
